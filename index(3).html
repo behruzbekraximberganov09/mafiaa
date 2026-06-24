@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mafia Lite</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:sans-serif;
+}
+
+body{
+background:#111;
+color:white;
+padding:20px;
+}
+
+.container{
+max-width:800px;
+margin:auto;
+}
+
+h1{
+text-align:center;
+margin-bottom:20px;
+color:#ff4444;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-bottom:10px;
+border:none;
+border-radius:10px;
+}
+
+button{
+padding:12px 20px;
+background:#ff4444;
+border:none;
+color:white;
+border-radius:10px;
+cursor:pointer;
+margin-bottom:10px;
+}
+
+button:hover{
+background:#ff2222;
+}
+
+.player{
+background:#222;
+padding:15px;
+margin:10px 0;
+border-radius:12px;
+animation:appear .5s ease;
+}
+
+.dead{
+opacity:.4;
+text-decoration:line-through;
+}
+
+#log{
+margin-top:20px;
+background:#1b1b1b;
+padding:15px;
+border-radius:12px;
+min-height:120px;
+}
+
+#overlay{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#000;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:50px;
+z-index:1000;
+opacity:0;
+pointer-events:none;
+transition:1s;
+}
+
+.show{
+opacity:1 !important;
+}
+
+@keyframes appear{
+from{
+opacity:0;
+transform:translateY(30px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
+}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+<h1 id="phaseText">🌙 Tun tushdi</h1>
+</div>
+
+<div class="container">
+
+<h1>🎭 Mafia Lite</h1>
+
+<input
+id="nameInput"
+type="text"
+placeholder="Ismingizni kiriting">
+
+<button onclick="startGame()">
+Boshlash
+</button>
+
+<h2 id="role"></h2>
+
+<div id="players"></div>
+
+<button id="voteBtn" onclick="votePlayer()">
+Ovoz berish
+</button>
+
+<div id="log"></div>
+
+</div>
+
+<script>
+
+let players = [];
+let role = "";
+
+const overlay =
+document.getElementById("overlay");
+
+const phaseText =
+document.getElementById("phaseText");
+
+function startGame(){
+
+let name =
+document.getElementById("nameInput").value;
+
+if(!name){
+alert("Ism kiriting");
+return;
+}
+
+players = [
+{name:name,role:"",alive:true},
+{name:"Ali",role:"",alive:true},
+{name:"Vali",role:"",alive:true},
+{name:"Sardor",role:"",alive:true},
+{name:"Jasur",role:"",alive:true},
+{name:"Bekzod",role:"",alive:true}
+];
+
+let roles = [
+"Mafia",
+"Doctor",
+"Komissar",
+"Aholi",
+"Aholi",
+"Aholi"
+];
+
+roles.sort(()=>Math.random()-0.5);
+
+players.forEach((p,i)=>{
+p.role = roles[i];
+});
+
+role = players[0].role;
+
+document.getElementById("role").innerHTML =
+"🎭 Sizning rolingiz: " + role;
+
+render();
+
+log("O'yin boshlandi");
+}
+
+function render(){
+
+let html = "";
+
+players.forEach((p,i)=>{
+
+html += `
+<div class="player ${p.alive ? "" : "dead"}">
+${i}. ${p.name}
+${p.alive ? " 🟢" : " 💀"}
+</div>
+`;
+
+});
+
+document.getElementById("players").innerHTML =
+html;
+}
+
+function log(text){
+
+document.getElementById("log").innerHTML +=
+`<p>${text}</p>`;
+}
+
+function votePlayer(){
+
+let alive =
+players.filter(
+(p,index)=>p.alive && index!==0
+);
+
+if(alive.length===0){
+return;
+}
+
+let list = alive
+.map(p=>p.name)
+.join("\n");
+
+let target =
+prompt(
+"Kimni chiqaramiz?\n\n"+list
+);
+
+let player =
+players.find(
+p=>p.name.toLowerCase() ===
+target?.toLowerCase()
+);
+
+if(!player){
+alert("Bunday o'yinchi yo'q");
+return;
+}
+
+player.alive = false;
+
+log(
+"🗳️ " +
+player.name +
+" shahardan chiqarildi"
+);
+
+render();
+
+nightPhase();
+}
+
+function nightPhase(){
+
+overlay.classList.add("show");
+
+phaseText.innerHTML =
+"🌙 Tun tushdi";
+
+setTimeout(()=>{
+
+let mafia =
+players.find(
+p=>p.alive &&
+p.role==="Mafia"
+);
+
+if(mafia){
+
+let victims =
+players.filter(
+p=>p.alive &&
+p.role!=="Mafia"
+);
+
+let victim =
+victims[
+Math.floor(
+Math.random()*victims.length
+)
+];
+
+victim.alive = false;
+
+setTimeout(()=>{
+
+phaseText.innerHTML =
+"☀️ Kun chiqdi";
+
+setTimeout(()=>{
+
+overlay.classList.remove("show");
+
+log(
+"🔪 " +
+victim.name +
+" kechasi o'ldirildi"
+);
+
+render();
+
+checkWinner();
+
+},2000);
+
+},2000);
+
+}
+
+},2000);
+}
+
+function checkWinner(){
+
+let mafia =
+players.filter(
+p=>p.alive &&
+p.role==="Mafia"
+).length;
+
+let city =
+players.filter(
+p=>p.alive &&
+p.role!=="Mafia"
+).length;
+
+if(mafia===0){
+
+setTimeout(()=>{
+alert("🎉 Aholi g'alaba qozondi!");
+},500);
+
+}
+
+if(mafia>=city){
+
+setTimeout(()=>{
+alert("💀 Mafia g'alaba qozondi!");
+},500);
+
+}
+}
+
+</script>
+
+</body>
+</html>
